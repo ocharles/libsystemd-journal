@@ -33,6 +33,7 @@ module Systemd.Journal
     , JournalEntry
     , journalEntryFields
     , JournalFlag (..)
+    , Filter (..)
     ) where
 
 import Control.Applicative
@@ -170,6 +171,7 @@ sendMessageWith :: Text.Text -> JournalFields -> IO ()
 sendMessageWith text meta = sendJournalFields $ mappend meta $ message text
 
 --------------------------------------------------------------------------------
+-- | Send an exact set of fields to the systemd journal.
 sendJournalFields :: JournalFields -> IO ()
 sendJournalFields meta = void $
   throwIfNeg (("sd_journal_send returned :" ++) . show) $
@@ -183,6 +185,8 @@ sendJournalFields meta = void $
     Iovec.unsafeUseAsCIovec (encodeKv k v) $
       \messageIovec -> go (f . (++ [messageIovec])) (n + 1) xs
 
+--------------------------------------------------------------------------------
+encodeKv :: JournalField -> BS.ByteString -> BS.ByteString
 encodeKv (JournalField k) v =
   Text.encodeUtf8 k `mappend` BS.singleton (fromIntegral $ ord '=') `mappend` v
 
@@ -208,24 +212,61 @@ foreign import ccall "sd_journal_add_disjunction"
 foreign import ccall "strerror" c'strerror
   :: #{type int} -> IO CString
 
-data JournalFlag = LocalOnly | RuntimeOnly
+--------------------------------------------------------------------------------
+-- | Flags to specify which journal entries to read.
+data JournalFlag
+  = LocalOnly
+  -- ^ Only journal files generated on the local machine will be opened.
+  | RuntimeOnly
+  -- ^ Only volatile journal files will be opened, excluding those which are
+  -- stored on persistent storage.
+  | SystemOnly
+  -- ^ Only journal files of system services and the kernel (in opposition to
+  -- user session processes) will be opened.
   deriving (Bounded, Enum, Eq, Ord)
 
-data JournalEntry = JournalEntry { journalEntryFields :: JournalFields }
+--------------------------------------------------------------------------------
+-- | An entry that has been read from the systemd journal.
+data JournalEntry
+  = JournalEntry { journalEntryFields :: JournalFields
+                   -- ^ A map of each 'JournalField' to its value.
+                 }
   deriving (Eq, Show)
 
-data Filter = Match JournalField BS.ByteString | And Filter Filter | Or Filter Filter
+--------------------------------------------------------------------------------
+-- | A logical expression to filter journal entries when reading the journal.
+data Filter
+  = Match JournalField BS.ByteString
+  -- ^ A binary exact match on a given 'JournalField'.
+  | And Filter Filter
+  -- ^ Logical conjunction of two filters. Will only show journal entries that
+  -- satisfy both conditions.
+  | Or Filter Filter
+  -- ^ Logical disjunction of two filters. Will show journal entries that
+  -- satisfy either condition.
   deriving (Data, Eq, Show, Typeable)
 
-openJournal :: [JournalFlag] -> (Maybe Filter) -> Pipes.Producer JournalEntry IO ()
-openJournal flags filter = do
+--------------------------------------------------------------------------------
+-- | Opens the journal for reading, optionally filtering the journal entries.
+-- Filters are defined as arbitrary binary expression trees, which are then
+-- rewritten to be in conjunctive normal form before filtering with systemd
+-- to comply with systemd's rule system.
+openJournal
+  :: [JournalFlag]
+  -- ^ A list of flags taken under logical disjunction (or) to specify which
+  -- journal files to open.
+  -> (Maybe Filter)
+  -- ^ An optional filter to apply the journal. Only entries satisfying the
+  -- filter will be emitted.
+  -> Pipes.Producer JournalEntry IO ()
+openJournal flags journalFilter = do
   journalPtr <- liftIO $ alloca $ \journalPtrPtr -> do
     _ <- throwIfNeg (("sdl_journal_open returned: " ++) . show) $
            sdJournalOpen journalPtrPtr encodedJournalFlags
 
     peek journalPtrPtr
 
-  liftIO $ for_ filter $ applyFilter journalPtr
+  liftIO $ for_ journalFilter $ applyFilter journalPtr
 
   go journalPtr
 
@@ -281,3 +322,4 @@ openJournal flags filter = do
 encodeJournalFlag :: JournalFlag -> #{type int}
 encodeJournalFlag LocalOnly = #{const SD_JOURNAL_LOCAL_ONLY}
 encodeJournalFlag RuntimeOnly = #{const SD_JOURNAL_RUNTIME_ONLY}
+encodeJournalFlag SystemOnly = #{const SD_JOURNAL_SYSTEM_ONLY}
