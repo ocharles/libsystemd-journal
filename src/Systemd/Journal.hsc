@@ -3,6 +3,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes #-}
 module Systemd.Journal
     ( -- * Writing to the journal
       sendMessage
@@ -64,6 +65,7 @@ import qualified Data.Text.Encoding as Text
 import qualified Data.UUID as UUID
 import qualified Data.Vector.Storable as V
 import qualified Pipes as Pipes
+import qualified Pipes.Safe as Pipes
 import qualified System.Posix.Syslog as Syslog
 import qualified System.Posix.Types.Iovec as Iovec
 
@@ -209,6 +211,9 @@ foreign import ccall "sd_journal_add_conjunction"
 foreign import ccall "sd_journal_add_disjunction"
  sdJournalAddDisjunction :: Ptr JournalEntry -> IO Int
 
+foreign import ccall "sd_journal_close"
+  sdJournalClose :: Ptr JournalEntry -> IO ()
+
 foreign import ccall "strerror" c'strerror
   :: #{type int} -> IO CString
 
@@ -252,25 +257,28 @@ data Filter
 -- rewritten to be in conjunctive normal form before filtering with systemd
 -- to comply with systemd's rule system.
 openJournal
-  :: [JournalFlag]
+  :: Pipes.MonadSafe m
+  => [JournalFlag]
   -- ^ A list of flags taken under logical disjunction (or) to specify which
   -- journal files to open.
   -> (Maybe Filter)
   -- ^ An optional filter to apply the journal. Only entries satisfying the
   -- filter will be emitted.
-  -> Pipes.Producer JournalEntry IO ()
-openJournal flags journalFilter = do
-  journalPtr <- liftIO $ alloca $ \journalPtrPtr -> do
-    _ <- throwIfNeg (("sdl_journal_open returned: " ++) . show) $
-           sdJournalOpen journalPtrPtr encodedJournalFlags
-
-    peek journalPtrPtr
-
-  liftIO $ for_ journalFilter $ applyFilter journalPtr
-
-  go journalPtr
+  -> Pipes.Producer' JournalEntry m ()
+openJournal flags journalFilter =
+  Pipes.bracket (liftIO openJournalPtr) (liftIO . sdJournalClose) go
 
   where
+  openJournalPtr = do
+    journalPtr <- alloca $ \journalPtrPtr -> do
+      _ <- throwIfNeg (("sdl_journal_open returned: " ++) . show) $
+             sdJournalOpen journalPtrPtr encodedJournalFlags
+      peek journalPtrPtr
+
+    for_ journalFilter $ applyFilter journalPtr
+
+    return journalPtr
+
   encodedJournalFlags = foldl' (.|.) 0 (map encodeJournalFlag flags)
 
   applyFilter journalPtr =
