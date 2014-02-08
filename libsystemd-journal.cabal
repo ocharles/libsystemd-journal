@@ -1,5 +1,5 @@
 name:                libsystemd-journal
-version:             1.0.0
+version:             1.1.0
 synopsis:            Haskell bindings to libsystemd-journal
 homepage:            http://github.com/ocharles/libsystemd-journal
 license:             BSD3
