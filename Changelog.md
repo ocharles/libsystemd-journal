@@ -1,6 +1,6 @@
 # 1.1.0
 
-* Now supports filtering the journal.
+* It is now possible to read the journal.
 * Additionally, a lot of types/functions have changed their name from talking
   about logging to talking about sending messages to the journal.
 
