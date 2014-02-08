@@ -31,8 +31,9 @@ module Systemd.Journal
 
       -- * Reading the journal
     , openJournal
-    , JournalEntry
-    , journalEntryFields
+    , Start(..)
+    , JournalEntry, JournalEntryCursor
+    , journalEntryFields, journalEntryCursor
     , JournalFlag (..)
     , Filter (..)
     ) where
@@ -51,7 +52,7 @@ import Data.Monoid (Monoid, mappend, mempty)
 import Data.String (IsString (..))
 import Data.Typeable (Typeable)
 import Data.Word
-import Foreign (Ptr, alloca, peek, throwIfNeg)
+import Foreign (Ptr, alloca, free, peek, throwIfNeg)
 import Foreign.C (CString, peekCString)
 import System.Posix.Types (CPid(..))
 
@@ -214,6 +215,21 @@ foreign import ccall "sd_journal_add_disjunction"
 foreign import ccall "sd_journal_close"
   sdJournalClose :: Ptr JournalEntry -> IO ()
 
+foreign import ccall "sd_journal_get_cursor"
+  sdJournalGetCursor :: Ptr JournalEntry -> Ptr CString -> IO ()
+
+foreign import ccall "sd_journal_seek_cursor"
+  sdJournalSeekCursor :: Ptr JournalEntry -> CString -> IO #{type int}
+
+foreign import ccall "sd_journal_seek_tail"
+  sdJournalSeekTail :: Ptr JournalEntry -> IO #{type int}
+
+foreign import ccall "sd_journal_previous_skip"
+  sdJournalPreviousSkip :: Ptr JournalEntry -> #{type uint64_t} -> IO #{type int}
+
+foreign import ccall "sd_journal_wait"
+  sdJournalWait :: Ptr JournalEntry -> #{type uint64_t} -> IO #{type int}
+
 foreign import ccall "strerror" c'strerror
   :: #{type int} -> IO CString
 
@@ -231,11 +247,19 @@ data JournalFlag
   deriving (Bounded, Enum, Eq, Ord)
 
 --------------------------------------------------------------------------------
+type JournalEntryCursor = BS.ByteString
+
+--------------------------------------------------------------------------------
 -- | An entry that has been read from the systemd journal.
-data JournalEntry
-  = JournalEntry { journalEntryFields :: JournalFields
-                   -- ^ A map of each 'JournalField' to its value.
-                 }
+data JournalEntry = JournalEntry
+  { journalEntryFields :: JournalFields
+    -- ^ A map of each 'JournalField' to its value.
+
+  , journalEntryCursor :: JournalEntryCursor
+  -- ^ A 'JournalCursor' can be used as marker into the journal stream. This can
+  -- be used to re-open the journal at a specific point in the future, and
+  -- 'JournalCursor's can be serialized to disk.
+  }
   deriving (Eq, Show)
 
 --------------------------------------------------------------------------------
@@ -252,6 +276,16 @@ data Filter
   deriving (Data, Eq, Show, Typeable)
 
 --------------------------------------------------------------------------------
+-- | Where to begin reading the journal from.
+data Start
+  = FromStart
+  -- ^ Begin reading from the start of the journal.
+  | FromEnd
+  -- ^ Begin reading from the end of the journal.
+  | FromCursor JournalEntryCursor
+  -- ^ From a 'JournalEntryCursor'.
+
+--------------------------------------------------------------------------------
 -- | Opens the journal for reading, optionally filtering the journal entries.
 -- Filters are defined as arbitrary binary expression trees, which are then
 -- rewritten to be in conjunctive normal form before filtering with systemd
@@ -261,11 +295,13 @@ openJournal
   => [JournalFlag]
   -- ^ A list of flags taken under logical disjunction (or) to specify which
   -- journal files to open.
-  -> (Maybe Filter)
+  -> Start
+  -- ^ Where to begin reading journal entries from.
+  -> Maybe Filter
   -- ^ An optional filter to apply the journal. Only entries satisfying the
   -- filter will be emitted.
   -> Pipes.Producer' JournalEntry m ()
-openJournal flags journalFilter =
+openJournal flags start journalFilter =
   Pipes.bracket (liftIO openJournalPtr) (liftIO . sdJournalClose) go
 
   where
@@ -276,6 +312,19 @@ openJournal flags journalFilter =
       peek journalPtrPtr
 
     for_ journalFilter $ applyFilter journalPtr
+
+    case start of
+      FromStart ->
+        return ()
+
+      FromEnd -> void $ do
+        throwIfNeg (("sd_journal_seek_tail: " ++) . show) $
+          sdJournalSeekTail journalPtr
+        throwIfNeg (("sd_journal_previous_skip" ++) . show) $
+          sdJournalPreviousSkip journalPtr 1
+
+      FromCursor cursor -> void $
+        BS.useAsCString cursor (sdJournalSeekCursor journalPtr)
 
     return journalPtr
 
@@ -322,9 +371,25 @@ openJournal flags journalFilter =
             Nothing -> return acc
 
     progressedBy <- liftIO (sdJournalNext journalPtr)
-    when (progressedBy > 0) $ do
-      Pipes.yield =<< (liftIO $ JournalEntry <$> readFields mempty)
-      go journalPtr
+
+    case compare progressedBy 0 of
+      GT -> do
+        entry <- liftIO $ JournalEntry
+          <$> readFields mempty
+          <*> (alloca $ \cursorStrPtr -> do
+                sdJournalGetCursor journalPtr cursorStrPtr
+                cursorCString <- peek cursorStrPtr
+                BS.packCString cursorCString <* free cursorCString)
+
+        Pipes.yield entry
+
+        go journalPtr
+
+      EQ -> do
+        liftIO $ sdJournalWait journalPtr (-1)
+        go journalPtr
+
+      LT -> error $ "sd_journal_next: " ++ show progressedBy
 
 --------------------------------------------------------------------------------
 encodeJournalFlag :: JournalFlag -> #{type int}
