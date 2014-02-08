@@ -164,7 +164,7 @@ sendMessage = sendJournalFields . message
 --------------------------------------------------------------------------------
 -- | Send a message and supply extra fields.
 --
--- Note: The @MESSAGE field  will be replaced with the first parameter to this
+-- Note: The @MESSAGE@ field  will be replaced with the first parameter to this
 -- function. If you don't want this, use 'sendJournalFields'
 sendMessageWith :: Text.Text -> JournalFields -> IO ()
 sendMessageWith text meta = sendJournalFields $ mappend meta $ message text
