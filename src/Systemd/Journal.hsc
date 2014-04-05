@@ -230,6 +230,9 @@ foreign import ccall "sd_journal_previous_skip"
 foreign import ccall "sd_journal_wait"
   sdJournalWait :: Ptr JournalEntry -> #{type uint64_t} -> IO #{type int}
 
+foreign import ccall "sd_journal_set_data_threshold"
+  sdJournalSetDataThreshold :: Ptr JournalEntry -> #{type size_t} -> IO #{type int}
+
 foreign import ccall "strerror" c'strerror
   :: #{type int} -> IO CString
 
@@ -300,8 +303,10 @@ openJournal
   -> Maybe Filter
   -- ^ An optional filter to apply the journal. Only entries satisfying the
   -- filter will be emitted.
+  -> Maybe Integer
+  -- ^ The data field size threshold, or Nothing for no field size limit
   -> Pipes.Producer' JournalEntry m ()
-openJournal flags start journalFilter =
+openJournal flags start journalFilter threshold =
   Pipes.bracket (liftIO openJournalPtr) (liftIO . sdJournalClose) go
 
   where
@@ -325,6 +330,11 @@ openJournal flags start journalFilter =
 
       FromCursor cursor -> void $
         BS.useAsCString cursor (sdJournalSeekCursor journalPtr)
+
+    _ <- throwIfNeg (("sd_journal_set_data_threshold returned: " ++) . show) .
+        sdJournalSetDataThreshold journalPtr $ case threshold of
+                                                Nothing -> fromIntegral (0 :: Integer)
+                                                Just n  -> fromIntegral n
 
     return journalPtr
 
