@@ -1,3 +1,8 @@
+# 1.3.0
+
+* Now depends on `systemd >= 209`. These versions of `systemd` feature the
+  `journald` functions in the `systemd` library.
+
 # 1.2.0
 
 * Builds with base 4.7
