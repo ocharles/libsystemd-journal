@@ -1,3 +1,7 @@
+# 1.3.1
+
+* Increase the upper-bound of `text` to < 1.3.
+
 # 1.3.0
 
 * Now depends on `systemd >= 209`. These versions of `systemd` feature the
