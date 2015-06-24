@@ -1,3 +1,7 @@
+# 1.3.2
+
+* Increase the upper-bound of `base`.
+
 # 1.3.1
 
 * Increase the upper-bound of `text` to < 1.3.
