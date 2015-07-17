@@ -28,6 +28,7 @@ module Systemd.Journal
       -- ** Custom journal fields
     , JournalField
     , mkJournalField
+    , journalField
 
       -- * Reading the journal
     , openJournal
@@ -86,6 +87,11 @@ instance IsString JournalField where
 -- journal.
 mkJournalField :: Text.Text -> JournalField
 mkJournalField = JournalField . Text.toUpper
+
+--------------------------------------------------------------------------------
+-- | Extract the name of a 'JournalField'.
+journalField :: JournalField -> Text.Text
+journalField (JournalField f) = f
 
 --------------------------------------------------------------------------------
 -- | A structured object of all the fields in an entry in the journal. You
