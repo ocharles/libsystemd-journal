@@ -377,7 +377,7 @@ openJournal flags start journalFilter threshold =
           case field of
             Just f ->
               let (fieldName, fieldValue) =
-                    BS.breakByte (fromIntegral $ ord '=') f
+                    BS.break (== (fromIntegral $ ord '=')) f
               in readFields
                    (HashMap.insert
                       (JournalField $ Text.decodeUtf8 fieldName)
