@@ -1,3 +1,9 @@
+# 1.3.3
+
+* Added `journalField :: JournalField -> Text`, to view the name of a `JournalField` as `Text`.
+  Thanks to @rickynils.
+* Addressed a deprecation warning from `bytestring`.
+
 # 1.3.2
 
 * Increase the upper-bound of `base`.
