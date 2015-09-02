@@ -34,7 +34,7 @@ module Systemd.Journal
     , openJournal
     , Start(..)
     , JournalEntry, JournalEntryCursor
-    , journalEntryFields, journalEntryCursor
+    , journalEntryFields, journalEntryCursor, journalEntryRealtime
     , JournalFlag (..)
     , Filter (..)
     ) where
@@ -242,6 +242,9 @@ foreign import ccall "sd_journal_set_data_threshold"
 foreign import ccall "strerror" c'strerror
   :: #{type int} -> IO CString
 
+foreign import ccall "sd_journal_get_realtime_usec"
+ sdJournalGetRealtimeUsec :: Ptr JournalEntry -> Ptr #{type uint64_t} -> IO #{type int}
+
 --------------------------------------------------------------------------------
 -- | Flags to specify which journal entries to read.
 data JournalFlag
@@ -268,6 +271,10 @@ data JournalEntry = JournalEntry
   -- ^ A 'JournalCursor' can be used as marker into the journal stream. This can
   -- be used to re-open the journal at a specific point in the future, and
   -- 'JournalCursor's can be serialized to disk.
+
+  , journalEntryRealtime :: Word64
+  -- ^ The time (in microseconds since the epoch) when this journal entry was
+  -- received by the systemd journal.
   }
   deriving (Eq, Show)
 
@@ -396,6 +403,9 @@ openJournal flags start journalFilter threshold =
                 sdJournalGetCursor journalPtr cursorStrPtr
                 cursorCString <- peek cursorStrPtr
                 BS.packCString cursorCString <* free cursorCString)
+          <*> (alloca $ \realtimePtr -> do
+                sdJournalGetRealtimeUsec journalPtr realtimePtr
+                peek realtimePtr)
 
         Pipes.yield entry
 
