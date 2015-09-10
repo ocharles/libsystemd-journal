@@ -1,3 +1,8 @@
+# 1.3.4
+
+* Added the `journalEntryRealtime` property to `JournalEntry`s. This is backed by a call to
+  `sd_journal_get_realtime_usec`.
+
 # 1.3.3
 
 * Added `journalField :: JournalField -> Text`, to view the name of a `JournalField` as `Text`.
