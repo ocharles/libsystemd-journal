@@ -1,7 +1,7 @@
 # 1.3.4
 
 * Added the `journalEntryRealtime` property to `JournalEntry`s. This is backed by a call to
-  `sd_journal_get_realtime_usec`.
+  `sd_journal_get_realtime_usec`. Thanks to @rickynils for this change.
 * Build with `vector` < 0.12.
 
 # 1.3.3
