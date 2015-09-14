@@ -33,6 +33,7 @@ module Systemd.Journal
       -- * Reading the journal
     , openJournal
     , Start(..)
+    , Direction(..)
     , JournalEntry, JournalEntryCursor
     , journalEntryFields, journalEntryCursor, journalEntryRealtime
     , JournalFlag (..)
@@ -209,6 +210,9 @@ foreign import ccall "sd_journal_enumerate_data"
 foreign import ccall "sd_journal_next"
  sdJournalNext :: Ptr JournalEntry -> IO Int
 
+foreign import ccall "sd_journal_previous"
+ sdJournalPrevious :: Ptr JournalEntry -> IO Int
+
 foreign import ccall "sd_journal_add_match"
  sdJournalAddMatch :: Ptr JournalEntry -> Ptr a -> #{type size_t} -> IO Int
 
@@ -291,14 +295,24 @@ data Filter
   -- satisfy either condition.
   deriving (Data, Eq, Show, Typeable)
 
+
+--------------------------------------------------------------------------------
+-- | In which direction to read the journal.
+data Direction
+  = Forwards
+  -- ^ Read towards the end.
+  | Backwards
+  -- ^ Read towards the beginning.
+  deriving (Eq)
+
 --------------------------------------------------------------------------------
 -- | Where to begin reading the journal from.
 data Start
   = FromStart
   -- ^ Begin reading from the start of the journal.
-  | FromEnd
+  | FromEnd Direction
   -- ^ Begin reading from the end of the journal.
-  | FromCursor JournalEntryCursor
+  | FromCursor JournalEntryCursor Direction
   -- ^ From a 'JournalEntryCursor'.
 
 --------------------------------------------------------------------------------
@@ -335,13 +349,15 @@ openJournal flags start journalFilter threshold =
       FromStart ->
         return ()
 
-      FromEnd -> void $ do
+      FromEnd d -> void $ do
         throwIfNeg (("sd_journal_seek_tail: " ++) . show) $
           sdJournalSeekTail journalPtr
-        throwIfNeg (("sd_journal_previous_skip" ++) . show) $
-          sdJournalPreviousSkip journalPtr 1
+        when (d == Forwards) $ do
+          throwIfNeg (("sd_journal_previous_skip" ++) . show) $
+            sdJournalPreviousSkip journalPtr 1
+          return ()
 
-      FromCursor cursor -> void $
+      FromCursor cursor _ -> void $
         BS.useAsCString cursor (sdJournalSeekCursor journalPtr)
 
     _ <- throwIfNeg (("sd_journal_set_data_threshold returned: " ++) . show) .
@@ -364,6 +380,16 @@ openJournal flags start journalFilter threshold =
           sdJournalAddMatch journalPtr ptr (fromIntegral len)
 
     in addRule . Uniplate.transform cnf
+
+
+  sdJournalDirection :: Direction
+  sdJournalDirection = case start of
+    FromStart -> Forwards
+    FromEnd d -> d
+    FromCursor _ d -> d
+
+  sdJournalMove :: Ptr JournalEntry -> IO Int
+  sdJournalMove = if sdJournalDirection == Forwards then sdJournalNext else sdJournalPrevious
 
   go journalPtr = do
     let readField =
@@ -393,7 +419,7 @@ openJournal flags start journalFilter threshold =
 
             Nothing -> return acc
 
-    progressedBy <- liftIO (sdJournalNext journalPtr)
+    progressedBy <- liftIO (sdJournalMove journalPtr)
 
     case compare progressedBy 0 of
       GT -> do
@@ -411,7 +437,7 @@ openJournal flags start journalFilter threshold =
 
         go journalPtr
 
-      EQ -> do
+      EQ -> when (sdJournalDirection == Forwards) $ do
         liftIO $ sdJournalWait journalPtr (-1)
         go journalPtr
 
