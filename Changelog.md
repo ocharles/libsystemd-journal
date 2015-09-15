@@ -1,3 +1,8 @@
+# 1.4.0
+
+* Added the ability to read the journal backwards as well as forwards. Thanks to
+  @defanor for this change.
+
 # 1.3.4
 
 * Added the `journalEntryRealtime` property to `JournalEntry`s. This is backed by a call to
