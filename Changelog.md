@@ -1,3 +1,7 @@
+# 1.4.1
+
+* Updated `base` upper bound
+
 # 1.4.0
 
 * Added the ability to read the journal backwards as well as forwards. Thanks to
