@@ -1,3 +1,7 @@
+# 1.4.2
+
+* Updated `base` upper bound
+
 # 1.4.1
 
 * Updated `base` upper bound
