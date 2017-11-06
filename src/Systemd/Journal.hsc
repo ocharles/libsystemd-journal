@@ -230,6 +230,9 @@ foreign import ccall "sd_journal_get_cursor"
 foreign import ccall "sd_journal_seek_cursor"
   sdJournalSeekCursor :: Ptr JournalEntry -> CString -> IO #{type int}
 
+foreign import ccall "sd_journal_seek_realtime_usec"
+  sdJournalSeekRealtimeUsec :: Ptr JournalEntry -> #{type uint64_t} -> IO #{type int}
+
 foreign import ccall "sd_journal_seek_tail"
   sdJournalSeekTail :: Ptr JournalEntry -> IO #{type int}
 
@@ -313,6 +316,8 @@ data Start
   -- ^ Begin reading from the end of the journal.
   | FromCursor JournalEntryCursor Direction
   -- ^ From a 'JournalEntryCursor'.
+  | FromRealtime Word64
+  -- ^ Begin reading from a time (in microseconds since the epoch)
 
 --------------------------------------------------------------------------------
 -- | Opens the journal for reading, optionally filtering the journal entries.
@@ -359,6 +364,10 @@ openJournal flags start journalFilter threshold =
       FromCursor cursor _ -> void $
         BS.useAsCString cursor (sdJournalSeekCursor journalPtr)
 
+      FromRealtime realtime -> void $ do
+        throwIfNeg (("sd_journal_seek_realtime_usec: " ++) . show) $
+          sdJournalSeekRealtimeUsec journalPtr realtime
+
     _ <- throwIfNeg (("sd_journal_set_data_threshold returned: " ++) . show) .
         sdJournalSetDataThreshold journalPtr $ case threshold of
                                                 Nothing -> fromIntegral (0 :: Integer)
@@ -386,6 +395,7 @@ openJournal flags start journalFilter threshold =
     FromStart -> Forwards
     FromEnd d -> d
     FromCursor _ d -> d
+    FromRealtime _ -> Forwards
 
   sdJournalMove :: Ptr JournalEntry -> IO Int
   sdJournalMove = if sdJournalDirection == Forwards then sdJournalNext else sdJournalPrevious
