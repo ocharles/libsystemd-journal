@@ -36,11 +36,10 @@ module Systemd.Journal
     , Direction(..)
     , JournalEntry, JournalEntryCursor
     , journalEntryFields, journalEntryCursor, journalEntryRealtime
-    , JournalFlag (..)
-    , Filter (..)
+    , JournalFlag(..)
+    , Filter(..)
     ) where
 
-import Control.Applicative
 import Control.Monad (when, void)
 import Control.Monad.IO.Class (liftIO)
 import Data.Bits ((.|.))
@@ -350,10 +349,10 @@ openJournal flags start journalFilter threshold =
         return ()
 
       FromEnd d -> void $ do
-        throwIfNeg (("sd_journal_seek_tail: " ++) . show) $
+        _ <- throwIfNeg (("sd_journal_seek_tail: " ++) . show) $
           sdJournalSeekTail journalPtr
         when (d == Forwards) $ do
-          throwIfNeg (("sd_journal_previous_skip" ++) . show) $
+          _ <- throwIfNeg (("sd_journal_previous_skip" ++) . show) $
             sdJournalPreviousSkip journalPtr 1
           return ()
 
@@ -430,7 +429,7 @@ openJournal flags start journalFilter threshold =
                 cursorCString <- peek cursorStrPtr
                 BS.packCString cursorCString <* free cursorCString)
           <*> (alloca $ \realtimePtr -> do
-                sdJournalGetRealtimeUsec journalPtr realtimePtr
+                _ <- sdJournalGetRealtimeUsec journalPtr realtimePtr
                 peek realtimePtr)
 
         Pipes.yield entry
@@ -438,7 +437,7 @@ openJournal flags start journalFilter threshold =
         go journalPtr
 
       EQ -> when (sdJournalDirection == Forwards) $ do
-        liftIO $ sdJournalWait journalPtr (-1)
+        _ <- liftIO $ sdJournalWait journalPtr (-1)
         go journalPtr
 
       LT -> error $ "sd_journal_next: " ++ show progressedBy
