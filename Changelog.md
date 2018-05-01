@@ -1,3 +1,7 @@
+# 1.4.3
+
+* Updated `base` upper bound and compatibility with GHC 8.4
+
 # 1.4.2
 
 * Updated `base` upper bound
