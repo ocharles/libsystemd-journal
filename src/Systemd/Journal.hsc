@@ -51,6 +51,7 @@ import Data.Hashable (Hashable)
 import Data.Int
 import Data.List (foldl')
 import Data.Monoid (Monoid, mappend, mempty)
+import Data.Semigroup (Semigroup)
 import Data.String (IsString (..))
 import Data.Typeable (Typeable)
 import Data.Word
@@ -78,7 +79,7 @@ foreign import ccall "sd_journal_sendv"
 
 --------------------------------------------------------------------------------
 newtype JournalField = JournalField Text.Text
-  deriving (Eq, Data, Hashable, Ord, Read, Show, Typeable, Monoid)
+  deriving (Eq, Data, Hashable, Ord, Read, Show, Typeable, Monoid, Semigroup)
 
 instance IsString JournalField where
   fromString = JournalField . Text.pack . map toUpper
