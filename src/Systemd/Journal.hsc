@@ -33,6 +33,7 @@ module Systemd.Journal
       -- * Reading the journal
     , openJournal
     , Start(..)
+    , Mode(..)
     , Direction(..)
     , JournalEntry, JournalEntryCursor
     , journalEntryFields, journalEntryCursor, journalEntryRealtime
@@ -319,6 +320,13 @@ data Start
   | FromRealtime Word64
   -- ^ Begin reading from a time (in microseconds since the epoch)
 
+data Mode
+  = Waiting
+  -- ^ Will wait until new entry is available if end of journal is reached
+  | Terminating
+  -- ^ Will terminate if end of journal is reached
+  deriving (Eq, Show)
+
 --------------------------------------------------------------------------------
 -- | Opens the journal for reading, optionally filtering the journal entries.
 -- Filters are defined as arbitrary binary expression trees, which are then
@@ -336,8 +344,10 @@ openJournal
   -- filter will be emitted.
   -> Maybe Integer
   -- ^ The data field size threshold, or Nothing for no field size limit
+  -> Mode
+  -- ^ The mode in which producer operates
   -> Pipes.Producer' JournalEntry m ()
-openJournal flags start journalFilter threshold =
+openJournal flags start journalFilter threshold mode =
   Pipes.bracket (liftIO openJournalPtr) (liftIO . sdJournalClose) go
 
   where
@@ -446,9 +456,11 @@ openJournal flags start journalFilter threshold =
 
         go journalPtr
 
-      EQ -> when (sdJournalDirection == Forwards) $ do
-        _ <- liftIO $ sdJournalWait journalPtr (-1)
-        go journalPtr
+      EQ -> case mode of
+              Waiting -> when (sdJournalDirection == Forwards) $ do
+                           _ <- liftIO $ sdJournalWait journalPtr (-1)
+                           go journalPtr
+              Terminating -> return ()
 
       LT -> error $ "sd_journal_next: " ++ show progressedBy
 
