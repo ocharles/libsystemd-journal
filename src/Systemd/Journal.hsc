@@ -9,6 +9,7 @@ module Systemd.Journal
       sendMessage
     , sendMessageWith
     , sendJournalFields
+    , encodePriority
 
     , JournalFields
 
@@ -120,10 +121,15 @@ messageId =
   HashMap.singleton (JournalField "MESSAGE_ID") . Text.encodeUtf8 . Text.pack . UUID.toString
 
 --------------------------------------------------------------------------------
+-- | A priority value compatible encoded as ByteString
+encodePriority :: Syslog.Priority -> BS.ByteString
+encodePriority = Text.encodeUtf8 .  Text.pack . show . fromEnum
+
+--------------------------------------------------------------------------------
 -- | A priority value compatible with syslog's priority concept.
 priority :: Syslog.Priority -> JournalFields
 priority =
-  HashMap.singleton (JournalField "PRIORITY") . Text.encodeUtf8 .  Text.pack . show . fromEnum
+  HashMap.singleton (JournalField "PRIORITY") . encodePriority
 
 --------------------------------------------------------------------------------
 -- | The source code file generating this message.
