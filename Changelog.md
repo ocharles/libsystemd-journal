@@ -1,3 +1,9 @@
+# Next
+
+* Updated `base` upper bound and compatibility with GHC 8.6
+
+* Updated `semigroup` upper bound.
+
 # 1.4.3
 
 * Updated `base` upper bound and compatibility with GHC 8.4
