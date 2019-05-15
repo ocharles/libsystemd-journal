@@ -1,4 +1,4 @@
-# Next
+# 1.4.4 -- 2019-05-15
 
 * Updated `base` upper bound and compatibility with GHC 8.6
 
