@@ -439,7 +439,7 @@ openJournal flags start journalFilter threshold =
         go journalPtr
 
       EQ -> when (sdJournalDirection == Forwards) $ do
-        liftIO $ sdJournalWait journalPtr (-1)
+        liftIO $ sdJournalWait journalPtr maxBound
         go journalPtr
 
       LT -> error $ "sd_journal_next: " ++ show progressedBy
