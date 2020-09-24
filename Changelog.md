@@ -1,3 +1,8 @@
+# 1.4.5 -- 2020-09-24
+
+* Updated `base` upper bound to be compatible with GHC 8.8 and 8.10 (#21)
+* Fixed a warning (#20)
+
 # 1.4.4 -- 2019-05-15
 
 * Updated `base` upper bound and compatibility with GHC 8.6
