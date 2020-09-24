@@ -6,7 +6,7 @@ $> nix-shell -p systemd.dev pkg-config haskell.compiler.ghc865
 and set the compiler in `cabal.project.local`
 
 
-## building with GHC 8.10.2
+## Building with GHC 8.10.2
 
 $> nix-shell -p systemd.dev pkg-config haskell.compiler.ghc8102
 
