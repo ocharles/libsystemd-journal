@@ -1,5 +1,5 @@
 
-## building with GHC 8.6.5
+## Building with GHC 8.6.5
 
 $> nix-shell -p systemd.dev pkg-config haskell.compiler.ghc865
 
