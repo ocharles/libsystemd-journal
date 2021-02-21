@@ -280,6 +280,13 @@ data JournalEntry = JournalEntry
   , journalEntryRealtime :: Word64
   -- ^ The time (in microseconds since the epoch) when this journal entry was
   -- received by the systemd journal.
+  -- This can be converted to UTCTime using Data.Time.Clock.System:
+  --
+  -- let (seconds, micro) = journalEntryRealtime `divMod` 1000000
+  --  in systemToUTCTime $ MkSystemTime (fromIntegral seconds) (fromIntegral (micro * 1000))
+  --
+  -- Note that an earlier timestamp can usually be found in the
+  -- _SOURCE_REALTIME_TIMESTAMP field.
   }
   deriving (Eq, Show)
 
