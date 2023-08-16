@@ -1,6 +1,5 @@
 #include <systemd/sd-journal.h>
 
-{-# LANGUAGE OverloadedStrings #-}
 module Systemd.Journal
     ( -- * Writing to the journal
       sendMessage

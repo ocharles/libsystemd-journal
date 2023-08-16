@@ -32,4 +32,5 @@ library
                      , semigroups >= 0.1 && < 0.21
   hs-source-dirs:      src
   default-language:    GHC2021
+  default-extensions:  OverloadedStrings
   pkgconfig-depends: libsystemd >= 209
