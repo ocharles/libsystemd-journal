@@ -7,7 +7,7 @@ homepage:            http://github.com/ocharles/libsystemd-journal
 license:             BSD-3-Clause
 license-file:        LICENSE
 author:              Oliver Charles
-maintainer:          ollie@ocharles.org.uk
+maintainer:          ch.martin@gmail.com, ollie@ocharles.org.uk
 copyright: Oliver Charles (c) 2014
 category:            System
 build-type:          Simple
