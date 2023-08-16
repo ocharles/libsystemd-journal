@@ -11,6 +11,11 @@ maintainer:          ch.martin@gmail.com, ollie@ocharles.org.uk
 copyright:           Oliver Charles (c) 2014
 category:            Logging
 
+description:
+  Use this package to write to and read from journald. This is the
+  logging system that is part of systemd, which you may be familiar
+  with accessing via the command line using the journalctl command.
+
 extra-source-files:
   Changelog.md
 
