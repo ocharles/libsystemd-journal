@@ -1,9 +1,6 @@
 #include <systemd/sd-journal.h>
 
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes #-}
 module Systemd.Journal
     ( -- * Writing to the journal
       sendMessage
