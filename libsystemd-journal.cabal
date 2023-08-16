@@ -26,7 +26,7 @@ library
                      , vector >= 0.12.3 || ^>= 0.13
                      , uuid ^>= 1.3.13
                      , unordered-containers ^>= 0.2.10
-                     , hashable >= 1.1.2.5
+                     , hashable >= 1.3.2
                      , hsyslog
                      , uniplate >= 1.6
                      , semigroups >= 0.1 && < 0.21
