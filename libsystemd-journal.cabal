@@ -19,7 +19,7 @@ library
   build-depends:     , base ^>= 4.16 || ^>= 4.17 || ^>= 4.18
                      , bytestring ^>= 0.11.1 || ^>= 0.12
                      , pipes ^>= 4.3.10
-                     , pipes-safe >= 2.0
+                     , pipes-safe >= 2.3.1
                      , text ^>= 1.2 || ^>= 2.0
                      , transformers >= 0.3
                      , unix-bytestring >= 0.3.2 && < 0.5
