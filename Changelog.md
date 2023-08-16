@@ -1,3 +1,13 @@
+# 1.4.5.1
+
+* Miscellaneous cleanup
+* Adjusted a number of dependency bounds
+* Supported GHC range is now 9.2 to 9.6
+
+Published by: Chris Martin
+
+Date: 2023-08-16
+
 # 1.4.5
 
 * Updated `base` upper bound to be compatible with GHC 8.8 and 8.10 (#21)
