@@ -32,6 +32,7 @@ module Systemd.Journal
     , Direction(..)
     , JournalEntry, JournalEntryCursor
     , journalEntryFields, journalEntryCursor, journalEntryRealtime
+    , realtimeToUTCTime
     , JournalFlag (..)
     , Filter (..)
     ) where
@@ -49,6 +50,7 @@ import Data.List (foldl')
 import Data.Monoid (Monoid, mappend, mempty)
 import Data.Semigroup (Semigroup)
 import Data.String (IsString (..))
+import Data.Time (UTCTime)
 import Data.Typeable (Typeable)
 import Data.Word
 import Foreign (Ptr, alloca, free, peek, throwIfNeg)
@@ -62,6 +64,7 @@ import qualified Data.Generics.Uniplate.Operations as Uniplate
 import qualified Data.HashMap.Strict as HashMap
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
+import qualified Data.Time.Clock.System as Time
 import qualified Data.UUID as UUID
 import qualified Data.Vector.Storable as V
 import qualified Pipes as Pipes
@@ -276,8 +279,20 @@ data JournalEntry = JournalEntry
   , journalEntryRealtime :: Word64
   -- ^ The time (in microseconds since the epoch) when this journal entry was
   -- received by the systemd journal.
+  -- Use 'realtimeToUTCTime' to get the 'UTCTime' version.
+  --
+  -- Note that an earlier timestamp can usually be found in the
+  -- _SOURCE_REALTIME_TIMESTAMP field.
   }
   deriving (Eq, Show)
+
+-- | Convert a 'JournalEntry' realtime to 'UTCTime'
+realtimeToUTCTime :: Word64 -> UTCTime
+realtimeToUTCTime realtime =
+  Time.systemToUTCTime $ Time.MkSystemTime (fromIntegral seconds) (fromIntegral (micro * 1000))
+
+  where
+  (seconds, micro) = realtime `divMod` 1000000
 
 --------------------------------------------------------------------------------
 -- | A logical expression to filter journal entries when reading the journal.
