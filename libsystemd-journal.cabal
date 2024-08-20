@@ -1,7 +1,7 @@
 cabal-version: 3.0
 
 name:                libsystemd-journal
-version:             1.4.5.1
+version:             1.4.6.0
 synopsis:            Haskell bindings to libsystemd-journal
 homepage:            https://github.com/ocharles/libsystemd-journal
 license:             BSD-3-Clause
