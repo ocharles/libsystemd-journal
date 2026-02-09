@@ -6,30 +6,6 @@ test-show-details: direct
 if impl (ghc >= 9.14)
   allow-newer:
     , binary:containers
-    , binary:entropy
-    , Cabal:Cabal-syntax
-    , Cabal:containers
-    , Cabal:time
-    , Cabal-syntax:containers
-    , entropy:binary
-    , entropy:Cabal
-    , entropy:Cabal-syntax
-    , entropy:containers
-    , entropy:filepath
-    , entropy:text
-    , entropy:time
-    , entropy:unix
-    , hashable:base
-    , hashable:ghc-bignum
-    , hsc2hs:base
-    , pipes-safe:containers
-    , pipes-safe:primitive
-    , primitive:base
-    , splitmix:base
-    , tagged:template-haskell
-    , unordered-containers:template-haskell
-    , unix:time
-    , uuid:time
+    , pipes-safe:base
+    , uuid:uuid-types
     , uuid-types:template-haskell
-    , vector:base
-    , vector-stream:base
